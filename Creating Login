@@ -1,0 +1,55 @@
+from flask import Flask, render_template, redirect, request, session, url_for
+from flask_mysqldb import MySQL
+import MySQLdb
+
+app = Flask(__name__) ## Initializing flask application
+app.secret_key = '123456789'
+
+app.config['MYSQL_HOST'] = '0.0.0.0'
+app.config['MYSQL_PORT'] = 3306
+app.config['MYSQL_USER'] = "root"
+app.config['MYSQL_PASSWORD'] = "password"
+app.config['MYSQL_DB'] = 'accounts'
+
+db = MySQL(app)
+
+
+@app.route('/', methods = ['GET', 'POST'])  ## Making a url route
+def index():
+    if request.method == 'POST':
+        if 'E-MAIL' in request.form and 'PASSWORD' in request.form:
+            email = request.form['E-MAIL']
+            password = request.form['PASSWORD']
+            cursor = db.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute("SELECT * FROM login_info WHERE email = %s AND password = %s", (email, password))
+            info = cursor.fetchone()
+            if info is not None:
+                if info['email'] == email and info['password'] == password:
+                    session['loginsuccess'] = True
+                    return redirect(url_for('profile'))
+            else:
+                return redirect(url_for('index'))
+    return render_template("login.html")
+
+@app.route('/new', methods = ['GET','POST'])
+def new_user():
+    if request.method == 'POST':
+        if 'one' in request.form and 'two' in request.form and 'three' in request.form:
+            name = request.form['one']
+            email = request.form['two']
+            password = request.form['three']
+            cur = db.connection.cursor(MySQLdb.cursors.DictCursor)
+            cur.execute('INSERT INTO login_info (name, email, password) VALUES (%s, %s, %s)',(name, email, password))
+            db.connection.commit()
+            return redirect(url_for('index'))
+    return render_template('register.html')
+
+@app.route('/profile')
+def profile():
+    if session['loginsuccess'] == True:
+        return render_template('profile.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+## The above is how you make a simple APP
